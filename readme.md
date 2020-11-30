@@ -71,7 +71,7 @@ module.exports = {
 
 ## TODO
 
-- [ ] Look into module preloding for JS files
+- [ ] Look into module preloading for JS files
 - [ ] Look into providing ttypescript support (for plugins)
 - [ ] Look into providing TypeScript custom transformer support
 - [ ] Investigate other kinds of optimizations (open to suggestions)
