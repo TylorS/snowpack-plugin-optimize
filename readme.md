@@ -8,12 +8,16 @@ respectively.
 - Minify JS, CSS, and HTML assets
 - SourceMap generation w/ remapping support
 
+## Non-Features
+
+- Bundling - If you're looking for that I'd definitely reccomend the official webpack plugin.
+
 ## Install
 
 ```sh
-npm i --save-dev snowpack-plugin-hash
+npm i --save-dev snowpack-plugin-optimize
 
-yarn add -d snowpack-plugin-hash
+yarn add -d snowpack-plugin-optimize
 ```
 
 ## Usage
@@ -64,3 +68,11 @@ module.exports = {
   ]
 }
 ```
+
+## TODO
+
+- [ ] Look into module preloding for JS files
+- [ ] Look into providing ttypescript support (for plugins)
+- [ ] Look into providing TypeScript custom transformer support
+- [ ] Investigate other kinds of optimizations (open to suggestions)
+- [ ] See if there's better way's to do all these source maps?
