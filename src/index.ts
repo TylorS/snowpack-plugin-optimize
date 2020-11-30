@@ -12,10 +12,8 @@ import { writeAllFiles, WriteContent } from './writeAllFiles'
 
 const jsFileExtensions = ['.js', '.jsx']
 const prefix = gray('[snowpack-plugin-optimize]')
-
 const info = (msg: string) => console.info(prefix, msg)
 
-// TODO: Support module preloading
 const plugin = (
   config: SnowpackConfig,
   pluginOptions: plugin.PluginOptions = {},
@@ -25,6 +23,7 @@ const plugin = (
   const plugin: SnowpackPlugin = {
     name: 'snowpack-plugin-optimize',
     optimize: async (options) => {
+      // If there's noting to do, just return
       if (!minifyCss && !minifyHtml && !minifyJs) {
         return
       }
@@ -32,7 +31,7 @@ const plugin = (
       const { buildDirectory } = options
       const metaDir = join(buildDirectory, config.buildOptions.metaDir)
       const allFiles = readAllFiles(buildDirectory).filter((f) => !f.includes(metaDir))
-      const writeFile = writeAllFiles(info, buildDirectory)
+      const writeFile = writeAllFiles(info)
 
       // Find all the files we know how to optimize
       const jsFiles = allFiles.filter((f) => jsFileExtensions.includes(extname(f)))
@@ -71,19 +70,25 @@ const plugin = (
           },
         }
 
-        await Promise.all(jsFiles.map((f) => minifyJsContent(f, minifyOptions))).then(writeFile)
+        promises.push(
+          Promise.all(jsFiles.map((f) => minifyJsContent(f, minifyOptions))).then(writeFile),
+        )
       }
 
       if (minifyCss && cssFiles.length > 0) {
         info(`${yellow('!')} Minifying CSS files...`)
 
-        await Promise.all(cssFiles.map((f) => minifyCssContent(f, pluginOptions))).then(writeFile)
+        promises.push(
+          Promise.all(cssFiles.map((f) => minifyCssContent(f, pluginOptions))).then(writeFile),
+        )
       }
 
       if (minifyHtml && htmlFiles.length > 0) {
         info(`${yellow('!')} Minifying HTML files...`)
 
-        await Promise.all(htmlFiles.map((f) => minifyHtmlContent(f, pluginOptions))).then(writeFile)
+        promises.push(
+          Promise.all(htmlFiles.map((f) => minifyHtmlContent(f, pluginOptions))).then(writeFile),
+        )
       }
 
       await Promise.all(promises)
