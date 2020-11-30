@@ -32,7 +32,7 @@ module.exports = {
         minifyJs?: true
         // A deep merge is performed with these defaults.
         // @see Terser configuration https://github.com/terser/terser#minify-options-structure
-        terserOptions?: {
+        jsOptions?: {
           module: true,
           toplevel: true,
           sourceMap: true,

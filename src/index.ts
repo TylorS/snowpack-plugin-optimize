@@ -51,23 +51,23 @@ const plugin = (
       if (minifyJs && jsFiles.length > 0) {
         info(`${yellow('!')} Minifying JS files...`)
 
-        const { terserOptions } = pluginOptions
+        const { jsOptions } = pluginOptions
         const minifyOptions: MinifyOptions = {
           module: true,
           toplevel: true,
           sourceMap: true,
           nameCache,
-          ...terserOptions,
+          ...jsOptions,
           compress:
-            terserOptions?.compress === 'boolean'
-              ? terserOptions.compress
+            jsOptions?.compress === 'boolean'
+              ? jsOptions.compress
               : {
                   ecma: 2019,
-                  ...(terserOptions?.compress as CompressOptions),
+                  ...(jsOptions?.compress as CompressOptions),
                 },
           format: {
             ecma: 2019,
-            ...terserOptions?.format,
+            ...jsOptions?.format,
           },
         }
 
@@ -146,7 +146,7 @@ const minifyHtmlContent = async (htmlFile: string, pluginOptions: plugin.PluginO
 namespace plugin {
   export type PluginOptions = {
     readonly minifyJs?: boolean
-    readonly terserOptions?: MinifyOptions
+    readonly jsOptions?: MinifyOptions
     readonly minifyCss?: boolean
     readonly cssOptions?: csso.MinifyOptions & csso.CompressOptions
     readonly minifyHtml?: boolean
