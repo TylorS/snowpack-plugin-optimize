@@ -2,10 +2,9 @@ import remapping from '@ampproject/remapping'
 import { existsSync } from 'fs'
 import { readFile } from 'fs/promises'
 import MagicString from 'magic-string'
-import { basename, dirname, relative } from 'path'
+import { basename } from 'path'
 
 export async function generateSourceMaps(
-  _: string,
   filePath: string,
   beforeContent: string,
   afterContent: string,
@@ -18,21 +17,11 @@ export async function generateSourceMaps(
     afterContent,
     afterSourceMap,
   )
-  const map = JSON.parse(nextSourceMapContents)
-
-  if (!map.sources || map.sources.length !== 1) {
-    map.sources = [filePath].map((p) =>
-      p ? relative(dirname(filePath), relative(process.cwd(), p)) : p,
-    )
-    map.sourcesContent = [beforeContent]
-  }
-
-  const nextSourceMap = JSON.stringify(map)
 
   // You might not have generated sourceMaps previously, so we'll at least generate one
   // For our own transformations.
   if (!existsSync(sourceMapPath)) {
-    return nextSourceMap
+    return nextSourceMapContents
   }
 
   const initialSourceMap = await readFile(sourceMapPath).then((b) => JSON.parse(b.toString()))
@@ -41,12 +30,8 @@ export async function generateSourceMaps(
     initialSourceMap.sources[0] = [filePath]
   }
 
-  const updatedSourceMap = JSON.parse(nextSourceMap)
+  const updatedSourceMap = JSON.parse(nextSourceMapContents)
   const remapped = remapping([updatedSourceMap, initialSourceMap], () => null, false)
-
-  remapped.sources = remapped.sources.map((p) =>
-    p ? relative(dirname(filePath), relative(process.cwd(), p)) : p,
-  )
 
   return remapped.toString()
 }
@@ -61,8 +46,6 @@ function getNextSourceMap(
     return afterSourceMap
   }
 
-  const sourceMapPath = filePath + '.map'
-
   let ms = new MagicString(beforeContent, {
     filename: basename(filePath),
     indentExclusionRanges: [],
@@ -74,7 +57,7 @@ function getNextSourceMap(
     .generateMap({
       hires: true,
       file: basename(filePath),
-      source: existsSync(sourceMapPath) ? void 0 : beforeContent,
+      source: beforeContent,
       includeContent: true,
     })
     .toString()
