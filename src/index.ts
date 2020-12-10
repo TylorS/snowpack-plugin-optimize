@@ -1,37 +1,46 @@
 import csso from 'csso'
+import { toList } from 'dependency-tree'
 import { readFile } from 'fs/promises'
 import htmlMinifier from 'html-minifier'
-import { basename, extname, join } from 'path'
+import { basename, extname, join, relative } from 'path'
 import { SnowpackConfig, SnowpackPlugin } from 'snowpack'
 import { CompressOptions, minify, MinifyOptions } from 'terser'
 import { gray, green, red, yellow } from 'typed-colors'
 import { cross, tick } from 'typed-figures'
 
+import { generatePaths } from './generatePaths'
+import { parseHtml, querySelectorAll } from './parseHtml'
 import { readAllFiles } from './readAllFiles'
 import { writeAllFiles, WriteContent } from './writeAllFiles'
 
 const jsFileExtensions = ['.js', '.jsx']
 const prefix = gray('[snowpack-plugin-optimize]')
 const info = (msg: string) => console.info(prefix, msg)
+const headTagCloseRegex = new RegExp(`<(s+)?/(s+)?head(s+)?>`)
 
 const plugin = (
   config: SnowpackConfig,
   pluginOptions: plugin.PluginOptions = {},
 ): SnowpackPlugin => {
   const nameCache: Record<string, unknown> = {}
-  const { minifyCss = true, minifyHtml = true, minifyJs = true } = pluginOptions
+  const {
+    minifyCss = true,
+    minifyHtml = true,
+    minifyJs = true,
+    modulePreload = true,
+  } = pluginOptions
   const plugin: SnowpackPlugin = {
     name: 'snowpack-plugin-optimize',
     optimize: async (options) => {
       // If there's noting to do, just return
-      if (!minifyCss && !minifyHtml && !minifyJs) {
+      if (!minifyCss && !minifyHtml && !minifyJs && !modulePreload) {
         return
       }
 
       const { buildDirectory } = options
       const metaDir = join(buildDirectory, config.buildOptions.metaDir)
       const allFiles = readAllFiles(buildDirectory).filter((f) => !f.includes(metaDir))
-      const writeFile = writeAllFiles(info)
+      const writeFileContent = writeAllFiles(info)
 
       // Find all the files we know how to optimize
       const jsFiles = allFiles.filter((f) => jsFileExtensions.includes(extname(f)))
@@ -71,7 +80,7 @@ const plugin = (
         }
 
         promises.push(
-          Promise.all(jsFiles.map((f) => minifyJsContent(f, minifyOptions))).then(writeFile),
+          Promise.all(jsFiles.map((f) => minifyJsContent(f, minifyOptions))).then(writeFileContent),
         )
       }
 
@@ -79,15 +88,54 @@ const plugin = (
         info(`${yellow('!')} Minifying CSS files...`)
 
         promises.push(
-          Promise.all(cssFiles.map((f) => minifyCssContent(f, pluginOptions))).then(writeFile),
+          Promise.all(cssFiles.map((f) => minifyCssContent(f, pluginOptions))).then(
+            writeFileContent,
+          ),
         )
+      }
+
+      if (modulePreload && htmlFiles.length > 0) {
+        info(`${yellow('!')} Preloading modules...`)
+
+        await Promise.all(
+          htmlFiles.map(async (file) => {
+            const paths = new Set(generatePaths(buildDirectory, jsFiles, file))
+            const contents = await readFile(file).then((b) => b.toString())
+            const nodes = await parseHtml(contents)
+            const scripts = querySelectorAll('script', nodes)
+            const srcs = scripts.map((s) => s.attribs.src!).filter((s) => paths.has(s))
+            const links = srcs
+              .flatMap((script) =>
+                toList({ filename: join(buildDirectory, script), directory: buildDirectory }),
+              )
+              .map(
+                (path) => `<link rel='modulepreload' href='/${relative(buildDirectory, path)}'/>`,
+              )
+              .join('')
+            const headIndex = contents.search(headTagCloseRegex)
+            const after =
+              headIndex > -1
+                ? `${contents.slice(0, headIndex)}${links}${contents.slice(headIndex)}`
+                : contents
+
+            const writeContent: WriteContent = {
+              filePath: file,
+              oldContent: contents,
+              newContent: after,
+            }
+
+            return writeContent
+          }),
+        ).then(writeFileContent)
       }
 
       if (minifyHtml && htmlFiles.length > 0) {
         info(`${yellow('!')} Minifying HTML files...`)
 
         promises.push(
-          Promise.all(htmlFiles.map((f) => minifyHtmlContent(f, pluginOptions))).then(writeFile),
+          Promise.all(htmlFiles.map((f) => minifyHtmlContent(f, pluginOptions))).then(
+            writeFileContent,
+          ),
         )
       }
 
@@ -156,6 +204,7 @@ namespace plugin {
     readonly cssOptions?: csso.MinifyOptions & csso.CompressOptions
     readonly minifyHtml?: boolean
     readonly htmlOptions?: htmlMinifier.Options
+    readonly modulePreload?: boolean
   }
 }
 

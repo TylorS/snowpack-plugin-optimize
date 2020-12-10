@@ -11,7 +11,7 @@
     "declarationMap": true,
     "esModuleInterop": true,
     "importHelpers": true,
-    "isolatedModules": true,
+    "isolatedModules": false,
     "module": "CommonJS",
     "moduleResolution": "node",
     "noFallthroughCasesInSwitch": true,
