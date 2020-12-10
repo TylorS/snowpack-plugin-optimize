@@ -1,8 +1,9 @@
 import remapping from '@ampproject/remapping'
 import { existsSync } from 'fs'
 import { readFile } from 'fs/promises'
-import MagicString from 'magic-string'
 import { basename } from 'path'
+
+import { diffMagicString } from './diffMagicString'
 
 export async function generateSourceMaps(
   filePath: string,
@@ -46,19 +47,5 @@ function getNextSourceMap(
     return afterSourceMap
   }
 
-  let ms = new MagicString(beforeContent, {
-    filename: basename(filePath),
-    indentExclusionRanges: [],
-  })
-
-  ms = ms.overwrite(0, ms.length(), afterContent, { storeName: true, contentOnly: false })
-
-  return ms
-    .generateMap({
-      hires: true,
-      file: basename(filePath),
-      source: beforeContent,
-      includeContent: true,
-    })
-    .toString()
+  return diffMagicString(basename(filePath), beforeContent, afterContent)[1]
 }
