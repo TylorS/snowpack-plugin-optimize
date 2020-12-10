@@ -14,14 +14,14 @@ export function generatePaths(
 function applyRemounts(buildDirectory: string, baseUrl: string, path: string) {
   return (file: string): ReadonlyArray<string> => {
     return [
-      absoluteRemount(buildDirectory, file).replace('/', ensureAbsolute(baseUrl)),
+      baseUrl + absoluteRemount(buildDirectory, file),
       ensureRelative(relative(dirname(path), makeAbsolute(buildDirectory, file))),
     ]
   }
 }
 
 function absoluteRemount(buildDirectory: string, path: string): string {
-  return '/' + relative(buildDirectory, path)
+  return relative(buildDirectory, path)
 }
 
 function ensureRelative(path: string): string {
@@ -30,8 +30,4 @@ function ensureRelative(path: string): string {
   }
 
   return './' + path
-}
-
-function ensureAbsolute(path: string): string {
-  return path.startsWith('/') ? path : `/${path}`
 }
