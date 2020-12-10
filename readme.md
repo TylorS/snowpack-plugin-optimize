@@ -7,6 +7,7 @@ respectively.
 
 - Minify JS, CSS, and HTML assets
 - SourceMap generation w/ remapping support
+- Append `<link rel="modulepreload" />` tags to `<head>` to speed up download of dependency tree. 
 
 ## Non-Features
 
@@ -47,22 +48,24 @@ module.exports = {
           format: {
             ecma: 2019,
           },
-        }
-        minifyCss?: true
+        },
+        // Adds modulepreload links to potentially improve your module dependency load times
+        modulePreload?: true,
+        minifyCss?: true,
         // A merge is performed with these default
         // @see CSSO configuration https://github.com/css/csso#minifysource-options
         cssOptions?: {
           sourceMap: true,
           filename: path.basename(file),
         },
-        minifyHtml?: true
+        minifyHtml?: true,
         // A merge is performed with these defaults
         // @see html-minifier configuration https://github.com/kangax/html-minifier#options-quick-reference
         htmlOptions?: {
           collapseWhitespace: true,
           keepClosingSlash: true,
           removeComments: true,
-        }
+        },
       }
     ]
   ]
