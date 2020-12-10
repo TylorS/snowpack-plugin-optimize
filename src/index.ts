@@ -38,6 +38,7 @@ const plugin = (
       }
 
       const { buildDirectory } = options
+      const baseUrl = config.buildOptions.baseUrl
       const metaDir = join(buildDirectory, config.buildOptions.metaDir)
       const allFiles = readAllFiles(buildDirectory).filter((f) => !f.includes(metaDir))
       const writeFileContent = writeAllFiles(info)
@@ -99,7 +100,7 @@ const plugin = (
 
         await Promise.all(
           htmlFiles.map(async (file) => {
-            const paths = new Set(generatePaths(buildDirectory, jsFiles, file))
+            const paths = new Set(generatePaths(buildDirectory, baseUrl, jsFiles, file))
             const contents = await readFile(file).then((b) => b.toString())
             const nodes = await parseHtml(contents)
             const scripts = querySelectorAll('script', nodes)

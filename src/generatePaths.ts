@@ -4,16 +4,17 @@ import { makeAbsolute } from './makeAbsolute'
 
 export function generatePaths(
   buildDirectory: string,
+  baseUrl: string,
   files: ReadonlyArray<string>,
   filePath: string,
 ): ReadonlyArray<string> {
-  return files.flatMap(applyRemounts(buildDirectory, filePath))
+  return files.flatMap(applyRemounts(buildDirectory, baseUrl, filePath))
 }
 
-function applyRemounts(buildDirectory: string, path: string) {
+function applyRemounts(buildDirectory: string, baseUrl: string, path: string) {
   return (file: string): ReadonlyArray<string> => {
     return [
-      absoluteRemount(buildDirectory, file),
+      absoluteRemount(buildDirectory, file).replace('/', ensureAbsolute(baseUrl)),
       ensureRelative(relative(dirname(path), makeAbsolute(buildDirectory, file))),
     ]
   }
@@ -29,4 +30,8 @@ function ensureRelative(path: string): string {
   }
 
   return './' + path
+}
+
+function ensureAbsolute(path: string): string {
+  return path.startsWith('/') ? path : `/${path}`
 }
