@@ -14,14 +14,10 @@ export function generatePaths(
 function applyRemounts(buildDirectory: string, baseUrl: string, path: string) {
   return (file: string): ReadonlyArray<string> => {
     return [
-      baseUrl + absoluteRemount(buildDirectory, file),
+      baseUrl + relative(buildDirectory, file),
       ensureRelative(relative(dirname(path), makeAbsolute(buildDirectory, file))),
     ]
   }
-}
-
-function absoluteRemount(buildDirectory: string, path: string): string {
-  return relative(buildDirectory, path)
 }
 
 function ensureRelative(path: string): string {

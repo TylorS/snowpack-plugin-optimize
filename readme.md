@@ -74,7 +74,6 @@ module.exports = {
 
 ## TODO
 
-- [ ] Look into critical CSS inlining?
 - [ ] Look into providing [ttypescript](https://github.com/cevek/ttypescript) support (for plugins)
 - [ ] Look into providing TypeScript custom transformer support
 - [ ] Investigate other kinds of optimizations (open to suggestions)
