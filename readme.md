@@ -8,6 +8,11 @@ respectively.
 - Minify JS, CSS, and HTML assets
 - SourceMap generation w/ remapping support
 - Append `<link rel="modulepreload" />` tags to `<head>` to speed up download of dependency tree. 
+- TypeScript Declaration file output
+- TypeScript Transformer Support
+- [TTypescript](https://github.com/cevek/ttypescript) Support for custom compiler plugins
+
+> We're open to new kinds of optimizations, open an issue and lets talk!
 
 ## Non-Features
 
@@ -71,9 +76,3 @@ module.exports = {
   ]
 }
 ```
-
-## TODO
-
-- [ ] Look into providing [ttypescript](https://github.com/cevek/ttypescript) support (for plugins)
-- [ ] Look into providing TypeScript custom transformer support
-- [ ] Investigate other kinds of optimizations (open to suggestions)

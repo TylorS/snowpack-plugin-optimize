@@ -3,12 +3,14 @@ import { toList } from 'dependency-tree'
 import { readFile } from 'fs/promises'
 import htmlMinifier from 'html-minifier'
 import { basename, extname, join, relative } from 'path'
-import { SnowpackConfig, SnowpackPlugin } from 'snowpack'
+import { SnowpackBuildMap, SnowpackConfig, SnowpackPlugin } from 'snowpack'
 import { CompressOptions, minify, MinifyOptions } from 'terser'
 import { gray, green, red, yellow } from 'typed-colors'
 import { cross, tick } from 'typed-figures'
+import { CustomTransformers, MapLike } from 'typescript'
 
 import { generatePaths } from './generatePaths'
+import { createLanguageService, findTsConfig, registerTsPaths } from './load'
 import { parseHtml, querySelectorAll } from './parseHtml'
 import { readAllFiles } from './readAllFiles'
 import { writeAllFiles, WriteContent } from './writeAllFiles'
@@ -28,7 +30,10 @@ const plugin = (
     minifyHtml = true,
     minifyJs = true,
     modulePreload = true,
+    tsConfigFileName = 'tsconfig.json',
+    customTransformers,
   } = pluginOptions
+
   const plugin: SnowpackPlugin = {
     name: 'snowpack-plugin-optimize',
     optimize: async (options) => {
@@ -110,7 +115,8 @@ const plugin = (
                 toList({ filename: join(buildDirectory, script), directory: buildDirectory }),
               )
               .map(
-                (path) => `<link rel='modulepreload' href='/${relative(buildDirectory, path)}'/>`,
+                (path) =>
+                  `<link rel='modulepreload' href='${baseUrl}${relative(buildDirectory, path)}'/>`,
               )
               .join('')
             const headIndex = contents.search(headTagCloseRegex)
@@ -146,7 +152,81 @@ const plugin = (
     },
   }
 
+  try {
+    const cwd = process.cwd()
+    const tsConfig = findTsConfig(cwd, tsConfigFileName)
+    const files: MapLike<{ content: string; version: number }> = {}
+    const service = createLanguageService(cwd, registerTsPaths(tsConfig.compilerOptions), files)
+
+    plugin.resolve = {
+      input: ['.ts', '.tsx'],
+      output: ['.js', '.d.ts'],
+    }
+
+    plugin.load = async (options) => {
+      if (options.isDev) {
+        return
+      }
+
+      const { filePath } = options
+
+      if (!(filePath in files)) {
+        files[filePath] = {
+          content: '',
+          version: 0,
+        }
+      }
+
+      files[filePath].content = await readFile(filePath).then((b) => b.toString())
+      files[filePath]!.version++
+
+      const program = service.getProgram()!
+      const sf = program.getSourceFile(filePath)
+      const filesWritten: MapLike<string> = {}
+
+      program.emit(
+        sf,
+        (filename, data) => (filesWritten[filename] = data),
+        void 0,
+        false,
+        customTransformers,
+      )
+
+      const buildMap = filesToBuildMap(filesWritten)
+
+      return buildMap
+    }
+  } catch (error) {
+    console.info(`Unable to load TypeScript Files`)
+  }
+
   return plugin
+}
+
+function filesToBuildMap(files: MapLike<string>): SnowpackBuildMap {
+  const buildMap: SnowpackBuildMap = {
+    '.js': {
+      code: findExtension(files, '.js')!,
+      map: findExtension(files, '.js.map'),
+    },
+    '.d.ts': {
+      code: findExtension(files, '.d.ts')!,
+      map: findExtension(files, '.d.ts.map'),
+    },
+  }
+
+  if (!buildMap['.d.ts'].code) {
+    delete buildMap['.d.ts']
+  }
+
+  return buildMap
+}
+
+function findExtension(files: MapLike<string>, extension: string) {
+  const names = Object.keys(files)
+  const match = names.find((n) => n.endsWith(extension))
+
+  return match ? files[match] : undefined
 }
 
 const minifyJsContent = async (jsFile: string, minifyOptions: MinifyOptions) => {
@@ -206,6 +286,8 @@ namespace plugin {
     readonly minifyHtml?: boolean
     readonly htmlOptions?: htmlMinifier.Options
     readonly modulePreload?: boolean
+    readonly tsConfigFileName?: string // Config name
+    readonly customTransformers?: CustomTransformers
   }
 }
 

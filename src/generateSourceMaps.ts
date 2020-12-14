@@ -27,14 +27,35 @@ export async function generateSourceMaps(
 
   const initialSourceMap = await readFile(sourceMapPath).then((b) => JSON.parse(b.toString()))
 
+  if (!initialSourceMap) {
+    return nextSourceMapContents
+  }
+
   if (initialSourceMap.sources.length === 0) {
-    initialSourceMap.sources[0] = [filePath]
+    initialSourceMap.sources = [basename(filePath)]
   }
 
   const updatedSourceMap = JSON.parse(nextSourceMapContents)
-  const remapped = remapping([updatedSourceMap, initialSourceMap], () => null, false)
 
-  return remapped.toString()
+  if (!updatedSourceMap || !updatedSourceMap.mapping) {
+    return JSON.stringify(initialSourceMap)
+  }
+
+  if (updatedSourceMap.sources.length === 0) {
+    updatedSourceMap.sources = [basename(filePath)]
+  }
+
+  try {
+    const remapped = remapping([updatedSourceMap, initialSourceMap], () => null, false)
+
+    return remapped.toString()
+  } catch {
+    console.info('Unable to remap source map', filePath)
+    console.info('initial', initialSourceMap)
+    console.info('updated', updatedSourceMap)
+
+    return updatedSourceMap.mappings ? updatedSourceMap : initialSourceMap
+  }
 }
 
 function getNextSourceMap(
