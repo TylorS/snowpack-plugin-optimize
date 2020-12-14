@@ -1,6 +1,6 @@
+import Module from 'module'
 import { createMatchPath } from 'tsconfig-paths'
 import { CompilerOptions } from 'typescript'
-import Module from 'module'
 
 export function registerTsPaths(options: CompilerOptions): CompilerOptions {
   const { baseUrl, paths } = options
