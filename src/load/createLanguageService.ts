@@ -1,9 +1,10 @@
 import { existsSync, readFileSync } from 'fs'
-import { makeAbsolute } from '../makeAbsolute'
+import micromatch from 'micromatch'
 import { isAbsolute, join, relative } from 'path'
 import ts from 'ttypescript'
 import { CompilerOptions, LanguageService, LanguageServiceHost, MapLike } from 'typescript'
-import micromatch from 'micromatch'
+
+import { makeAbsolute } from '../makeAbsolute'
 
 export function createLanguageService(
   cwd: string,
