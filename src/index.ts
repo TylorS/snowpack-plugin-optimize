@@ -164,6 +164,7 @@ const plugin = (
     }
 
     plugin.load = async (options) => {
+      // TODO: Should we support loading in dev mode?
       if (options.isDev) {
         return
       }
